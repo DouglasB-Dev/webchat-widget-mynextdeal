@@ -189,7 +189,16 @@ function renderMessageContent(text: string) {
 
       return (
         <div key={`image-${imageUrl}-${index}`} className="overflow-hidden rounded-md border border-slate-200 bg-white/80">
-          <img src={imageUrl} alt={altText || "Property image"} className="h-auto w-full object-cover" loading="lazy" />
+          <Image
+            src={imageUrl}
+            alt={altText || "Property image"}
+            width={1200}
+            height={900}
+            sizes="(max-width: 768px) 100vw, 640px"
+            className="h-auto w-full object-cover"
+            unoptimized
+            loader={({ src }) => src}
+          />
         </div>
       );
     }
