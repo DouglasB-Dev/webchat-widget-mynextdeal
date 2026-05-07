@@ -30,6 +30,7 @@
 	const scriptUrl = new URL(script.src, window.location.href);
 	const origin = script.dataset.origin || scriptUrl.origin;
 	const path = script.dataset.path || DEFAULTS.path;
+	const frameUrl = new URL(path, origin).toString();
 	const title = script.dataset.title || DEFAULTS.title;
 	const width = script.dataset.width || DEFAULTS.width;
 	const height = script.dataset.height || DEFAULTS.height;
@@ -66,23 +67,22 @@
 	root.style[position] = offset;
 
 	const frame = document.createElement("iframe");
-	frame.src = new URL(path, origin).toString();
 	frame.title = "Web chat";
-	frame.loading = "eager";
+	frame.loading = "lazy";
 	frame.allow = "clipboard-read; clipboard-write";
 	applyStyles(frame, {
-		display: startOpen ? "block" : "none",
+		display: "none",
 		width: `min(calc(100vw - 32px), ${width})`,
 		height: `min(calc(100vh - 96px), ${height})`,
 		border: "0",
 		borderRadius: "24px",
 		background: "transparent",
 		boxShadow: "0 24px 80px rgba(0, 0, 0, 0.28)",
-		opacity: startOpen ? "1" : "0",
-		transform: startOpen ? "translateY(0) scale(1)" : "translateY(18px) scale(0.98)",
+		opacity: "0",
+		transform: "translateY(18px) scale(0.98)",
 		transformOrigin: isRightAligned ? "bottom right" : "bottom left",
 		transition: `opacity ${animationDurationMs}ms ease, transform ${animationDurationMs}ms ease`,
-		pointerEvents: startOpen ? "auto" : "none",
+		pointerEvents: "none",
 	});
 
 	const button = document.createElement("button");
@@ -107,6 +107,9 @@
 	});
 
 	let hideTimer;
+	let frameHasStartedLoading = false;
+	let frameIsReady = false;
+	let requestedOpen = startOpen;
 
 	const updateButtonState = (isOpen) => {
 		button.innerHTML = isOpen ? closeIcon : openIcon;
@@ -115,29 +118,34 @@
 		button.title = isOpen ? closeLabel : openLabel;
 	};
 
-	const syncState = (isOpen) => {
-		updateButtonState(isOpen);
-
+	const clearHideTimer = () => {
 		if (hideTimer) {
 			window.clearTimeout(hideTimer);
 			hideTimer = undefined;
 		}
+	};
 
-		if (isOpen) {
-			frame.style.display = "block";
-			frame.style.pointerEvents = "none";
+	const notifyOpened = () => {
+		window.setTimeout(() => {
+			frame.contentWindow?.postMessage("webchat:opened", origin);
+		}, animationDurationMs);
+	};
 
-			window.requestAnimationFrame(() => {
-				frame.style.opacity = "1";
-				frame.style.transform = "translateY(0) scale(1)";
-				frame.style.pointerEvents = "auto";
-				window.setTimeout(() => {
-					frame.contentWindow?.postMessage("webchat:opened", origin);
-				}, animationDurationMs);
-			});
-			return;
-		}
+	const revealFrame = () => {
+		clearHideTimer();
+		frame.style.display = "block";
+		frame.style.pointerEvents = "none";
 
+		window.requestAnimationFrame(() => {
+			frame.style.opacity = "1";
+			frame.style.transform = "translateY(0) scale(1)";
+			frame.style.pointerEvents = "auto";
+			notifyOpened();
+		});
+	};
+
+	const hideFrame = () => {
+		clearHideTimer();
 		frame.style.pointerEvents = "none";
 		frame.style.opacity = "0";
 		frame.style.transform = "translateY(18px) scale(0.98)";
@@ -146,8 +154,67 @@
 		}, animationDurationMs);
 	};
 
+	const ensureFrameLoaded = () => {
+		if (frameHasStartedLoading) {
+			return;
+		}
+
+		frameHasStartedLoading = true;
+		frame.src = frameUrl;
+	};
+
+	const openWidget = () => {
+		requestedOpen = true;
+		updateButtonState(true);
+		ensureFrameLoaded();
+
+		if (frameIsReady) {
+			revealFrame();
+		}
+	};
+
+	const closeWidget = () => {
+		requestedOpen = false;
+		updateButtonState(false);
+		hideFrame();
+	};
+
+	const scheduleFrameLoad = () => {
+		const loadFrame = () => {
+			ensureFrameLoaded();
+		};
+
+		if (typeof window.requestIdleCallback === "function") {
+			window.requestIdleCallback(loadFrame, { timeout: 1500 });
+			return;
+		}
+
+		window.setTimeout(loadFrame, 150);
+	};
+
+	frame.addEventListener("load", () => {
+		frameIsReady = true;
+
+		if (requestedOpen) {
+			revealFrame();
+		}
+	});
+
+	updateButtonState(startOpen);
+
+	if (document.readyState === "complete") {
+		scheduleFrameLoad();
+	} else {
+		window.addEventListener("load", scheduleFrameLoad, { once: true });
+	}
+
 	button.addEventListener("click", () => {
-		syncState(button.getAttribute("aria-expanded") !== "true");
+		if (requestedOpen) {
+			closeWidget();
+			return;
+		}
+
+		openWidget();
 	});
 
 	root.appendChild(frame);
