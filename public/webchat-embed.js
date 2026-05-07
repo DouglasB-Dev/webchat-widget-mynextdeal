@@ -179,19 +179,6 @@
 		hideFrame();
 	};
 
-	const scheduleFrameLoad = () => {
-		const loadFrame = () => {
-			ensureFrameLoaded();
-		};
-
-		if (typeof window.requestIdleCallback === "function") {
-			window.requestIdleCallback(loadFrame, { timeout: 1500 });
-			return;
-		}
-
-		window.setTimeout(loadFrame, 150);
-	};
-
 	frame.addEventListener("load", () => {
 		frameIsReady = true;
 
@@ -202,10 +189,8 @@
 
 	updateButtonState(startOpen);
 
-	if (document.readyState === "complete") {
-		scheduleFrameLoad();
-	} else {
-		window.addEventListener("load", scheduleFrameLoad, { once: true });
+	if (startOpen) {
+		openWidget();
 	}
 
 	button.addEventListener("click", () => {

@@ -23,8 +23,43 @@ type AIChatCardProps = {
   initialMessages?: ChatMessage[];
 };
 
+const CHAT_SESSION_STORAGE_KEY = "webchat-session-id";
 const RECONNECT_DELAY_MS = 1500;
 const LIVE_CONNECTION_ERROR = "The live connection could not be established.";
+
+function createSessionId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function getOrCreateChatSessionId() {
+  if (typeof window === "undefined") {
+    return createSessionId();
+  }
+
+  const storedSessionId = window.localStorage.getItem(CHAT_SESSION_STORAGE_KEY);
+
+  if (storedSessionId) {
+    return storedSessionId;
+  }
+
+  const nextSessionId = createSessionId();
+  window.localStorage.setItem(CHAT_SESSION_STORAGE_KEY, nextSessionId);
+  return nextSessionId;
+}
+
+function buildWebSocketConnectionUrl(baseUrl: string, sessionId: string) {
+  try {
+    const connectionUrl = new URL(baseUrl);
+    connectionUrl.searchParams.set("sessionId", sessionId);
+    return connectionUrl.toString();
+  } catch {
+    return baseUrl;
+  }
+}
 
 export default function AIChatCard({
   className,
@@ -45,6 +80,7 @@ export default function AIChatCard({
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const shouldReconnectRef = useRef(true);
   const hasResolvedInitialHistoryRef = useRef(false);
+  const sessionIdRef = useRef("");
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const usesWebSocket = Boolean(websocketUrl);
@@ -84,11 +120,6 @@ export default function AIChatCard({
   }, []);
 
   useEffect(() => {
-    hasResolvedInitialHistoryRef.current = false;
-    setIsLoadingHistory(Boolean(websocketUrl));
-  }, [websocketUrl]);
-
-  useEffect(() => {
     const clearReconnectTimeout = () => {
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
@@ -98,7 +129,6 @@ export default function AIChatCard({
 
     if (!websocketUrl) {
       hasResolvedInitialHistoryRef.current = true;
-      setIsLoadingHistory(false);
       socketRef.current = null;
       shouldReconnectRef.current = false;
       clearReconnectTimeout();
@@ -112,7 +142,11 @@ export default function AIChatCard({
     }
     clearReconnectTimeout();
 
-    const socket = new WebSocket(websocketUrl);
+    if (!sessionIdRef.current) {
+      sessionIdRef.current = getOrCreateChatSessionId();
+    }
+
+    const socket = new WebSocket(buildWebSocketConnectionUrl(websocketUrl, sessionIdRef.current));
     socketRef.current = socket;
 
     const scheduleReconnect = () => {
