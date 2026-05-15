@@ -98,6 +98,35 @@ export default function AIChatCard({
     scrollToBottom();
   }, [isTyping, messages]);
 
+  // Manejador de efectos para detectar si el componente está embebido en un iframe y ajustar estilos en consecuencia
+  useEffect(() => {
+    if (window.self === window.top) {
+      return;
+    }
+
+    const htmlElement = document.documentElement;
+    const bodyElement = document.body;
+    const previousHtmlBackground = htmlElement.style.background;
+    const previousBodyBackground = bodyElement.style.background;
+    const previousBodyOpacity = bodyElement.style.opacity;
+
+    htmlElement.style.background = "transparent";
+    bodyElement.style.background = "transparent";
+    bodyElement.style.opacity = "0";
+
+    const readyTimer = window.setTimeout(() => {
+        bodyElement.style.opacity = "1";
+        window.parent.postMessage("webchat:ready", "*");
+    }, 32);
+
+    return () => {
+      window.clearTimeout(readyTimer);
+      htmlElement.style.background = previousHtmlBackground;
+      bodyElement.style.background = previousBodyBackground;
+      bodyElement.style.opacity = previousBodyOpacity;
+    };
+  }, []);
+
   useEffect(() => {
     const handleEmbedOpen = (event: MessageEvent<unknown>) => {
       if (event.data !== "webchat:opened") {

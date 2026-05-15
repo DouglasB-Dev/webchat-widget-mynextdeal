@@ -68,10 +68,11 @@
 
 	const frame = document.createElement("iframe");
 	frame.title = "Web chat";
-	frame.loading = "lazy";
+	frame.loading = "eager";
 	frame.allow = "clipboard-read; clipboard-write";
 	applyStyles(frame, {
-		display: "none",
+		display: "block",
+		visibility: "hidden",
 		width: `min(calc(100vw - 32px), ${width})`,
 		height: `min(calc(100vh - 96px), ${height})`,
 		border: "0",
@@ -110,6 +111,7 @@
 	let frameHasStartedLoading = false;
 	let frameIsReady = false;
 	let requestedOpen = startOpen;
+	let hasRevealedFrame = false;
 
 	const updateButtonState = (isOpen) => {
 		button.innerHTML = isOpen ? closeIcon : openIcon;
@@ -132,8 +134,13 @@
 	};
 
 	const revealFrame = () => {
+		if (hasRevealedFrame) {
+			return;
+		}
+
+		hasRevealedFrame = true;
 		clearHideTimer();
-		frame.style.display = "block";
+		frame.style.visibility = "visible";
 		frame.style.pointerEvents = "none";
 
 		window.requestAnimationFrame(() => {
@@ -145,12 +152,13 @@
 	};
 
 	const hideFrame = () => {
+		hasRevealedFrame = false;
 		clearHideTimer();
 		frame.style.pointerEvents = "none";
 		frame.style.opacity = "0";
 		frame.style.transform = "translateY(18px) scale(0.98)";
 		hideTimer = window.setTimeout(() => {
-			frame.style.display = "none";
+			frame.style.visibility = "hidden";
 		}, animationDurationMs);
 	};
 
@@ -179,7 +187,15 @@
 		hideFrame();
 	};
 
-	frame.addEventListener("load", () => {
+	window.addEventListener("message", (event) => {
+		if (event.origin !== origin || event.source !== frame.contentWindow) {
+			return;
+		}
+
+		if (event.data !== "webchat:ready") {
+			return;
+		}
+
 		frameIsReady = true;
 
 		if (requestedOpen) {
