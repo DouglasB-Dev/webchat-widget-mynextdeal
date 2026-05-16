@@ -28,9 +28,17 @@
 	script.dataset.webchatInitialized = "true";
 
 	const scriptUrl = new URL(script.src, window.location.href);
-	const origin = script.dataset.origin || scriptUrl.origin;
 	const path = script.dataset.path || DEFAULTS.path;
-	const frameUrl = new URL(path, origin).toString();
+	let origin = script.dataset.origin || scriptUrl.origin;
+	let frameUrl = path;
+
+	try {
+		const resolvedFrameUrl = new URL(path, origin);
+		frameUrl = resolvedFrameUrl.toString();
+		origin = script.dataset.origin || resolvedFrameUrl.origin;
+	} catch {
+		frameUrl = path;
+	}
 	const title = script.dataset.title || DEFAULTS.title;
 	const width = script.dataset.width || DEFAULTS.width;
 	const height = script.dataset.height || DEFAULTS.height;

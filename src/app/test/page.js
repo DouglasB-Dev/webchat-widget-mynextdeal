@@ -1,10 +1,11 @@
 
 import Script from "next/script";
-import { embedPath, embedScriptUrl } from "@/lib/chat-config";
+import { appUrl, embedScriptUrl, embedUrl } from "@/lib/chat-config";
 
 const EMBED_SCRIPT_PROPS = {
   strategy: "afterInteractive",
-  "data-path": embedPath,
+  "data-origin": appUrl,
+  "data-path": embedUrl,
   "data-open": "false",
   "data-title": "Open chat",
   "data-width": "480px",
@@ -28,7 +29,8 @@ export default function NamePage() {
 
         <script
           src="http://localhost:3000/webchat-embed.js"
-          data-path="/embed"
+          data-origin="http://localhost:3000"
+          data-path="http://localhost:3000/embed"
           data-open="false"
           data-title="Open chat"
           data-width="480px"

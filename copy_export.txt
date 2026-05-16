@@ -1,6 +1,7 @@
 <script
   src="https://webchat-widget-mynextdeal-iwt1.vercel.app/webchat-embed.js"
-  data-path="/embed"
+  data-origin="https://webchat-widget-mynextdeal-iwt1.vercel.app"
+  data-path="https://webchat-widget-mynextdeal-iwt1.vercel.app/embed"
   data-open="false"
   data-title="Open chat"
   data-width="480px"
