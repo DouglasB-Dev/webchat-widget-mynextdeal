@@ -53,6 +53,11 @@
 			<path d="M18 6L6 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
 		</svg>`;
 
+	const host = document.createElement("div");
+	host.setAttribute("data-webchat-host", "true");
+
+	const shadowRoot = typeof host.attachShadow === "function" ? host.attachShadow({ mode: "open" }) : host;
+
 	const root = document.createElement("div");
 	root.setAttribute("data-webchat-root", "true");
 	applyStyles(root, {
@@ -220,5 +225,6 @@
 
 	root.appendChild(frame);
 	root.appendChild(button);
-	document.body.appendChild(root);
+	shadowRoot.appendChild(root);
+	document.body.appendChild(host);
 })();
