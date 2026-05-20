@@ -76,6 +76,7 @@
 		flexDirection: "column",
 		alignItems: isRightAligned ? "flex-end" : "flex-start",
 		gap: "12px",
+		pointerEvents: "none",
 	});
 	root.style[position] = offset;
 
@@ -118,6 +119,7 @@
 		color: "#ffffff",
 		background: "linear-gradient(135deg, #16a34a, #15803d)",
 		boxShadow: "0 12px 32px rgba(22, 163, 74, 0.28)",
+		pointerEvents: "auto",
 	});
 
 	let hideTimer;
